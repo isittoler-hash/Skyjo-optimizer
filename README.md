@@ -1,22 +1,39 @@
 # Skyjo Optimizer Setup
 
-This repository is prepared to build a **code-driven, iterative optimizer** for the card game **Skyjo**.
+This repository now includes a first executable baseline for **multi-situation strategy testing** and **evolutionary strategy selection**.
 
-## What this setup includes
+## What is implemented
 
-- A rules and assumptions brief for Skyjo.
-- A project strategy for simulation-first optimization.
-- A recommended language/framework stack.
-- A testing and iteration roadmap.
+- `GameSituation` profiles to represent different table conditions.
+- A parameterized `HeuristicStrategy` policy vector.
+- A deterministic evaluator that scores strategies under each situation.
+- An evolutionary optimizer that mutates strategy weights and keeps elites.
+- A selector that picks the best strategy for a specific situation.
 
-## Recommended implementation stack
+## Quick start
 
-- **Language:** Python 3.12+
-- **Core libs:** NumPy (state arrays), Numba (hot-loop acceleration), pandas (analysis)
-- **Testing:** pytest + hypothesis
-- **Experiment tracking:** lightweight CSV/Parquet logs (later upgrade to MLflow/W&B if needed)
+```bash
+python -m pytest
+```
 
-See details in:
+## Code map
+
+```text
+skyjo_optimizer/
+  agents/heuristic.py          # strategy parameters
+  simulation/scenarios.py      # game situations (test contexts)
+  simulation/evaluator.py      # deterministic strategy scoring
+  ml/evolution.py              # evolutionary optimization + selection
+tests/
+  test_evolution.py
+```
+
+## Notes
+
+The evaluator is currently a synthetic proxy objective until full Skyjo state-transition rules are implemented.
+It is deterministic and seeded so comparisons are reproducible between runs.
+
+See the planning docs for full simulator roadmap:
 
 - [`docs/skyjo-rules.md`](docs/skyjo-rules.md)
 - [`docs/technical-approach.md`](docs/technical-approach.md)
