@@ -1,23 +1,27 @@
 # Skyjo Optimizer Setup
 
-This repository now includes a first executable baseline for **multi-situation strategy testing** and **evolutionary strategy selection**.
+This repository includes a reproducible **strategy-optimization pipeline** for Skyjo with:
 
-## What is implemented
-
-- `GameSituation` profiles to represent different table conditions.
-- A parameterized `HeuristicStrategy` policy vector.
-- A deterministic evaluator that scores strategies under each situation.
-- A seeded baseline simulator with random and simple heuristic agents for round-robin play.
-- An evolutionary optimizer that mutates strategy weights and keeps elites.
-- A selector that picks the best strategy for a specific situation.
-- An experiment runner that records metadata + benchmark comparisons and can write JSON reports.
-- A first-pass engine skeleton with rules configuration and round-level invariant checks.
+- A deterministic round engine with configurable rule toggles.
+- Baseline tournament simulation and benchmark metrics.
+- Evolutionary heuristic optimization with train/holdout seed splits.
+- Experiment reports with metadata and artifact writing.
+- CLI entrypoints for baseline benchmarking and optimization runs.
 
 ## Quick start
 
 ```bash
 python -m pytest
+python -m skyjo_optimizer.cli baseline --rounds 24 --seed 7
+python -m skyjo_optimizer.cli optimize --population-size 24 --generations 20 --seed 7
 ```
+
+## Artifact layout
+
+Optimization runs write timestamped folders under `artifacts/` containing:
+
+- `report.json` with run metadata, optimized strategy metrics, holdout score, and tournament benchmark.
+- `tournament_summary.csv` with per-agent aggregate metrics.
 
 ## Code map
 
@@ -29,20 +33,7 @@ skyjo_optimizer/
   simulation/scenarios.py      # game situations (test contexts)
   simulation/evaluator.py      # deterministic strategy scoring
   simulation/baseline.py       # seeded round/tournament runner + baseline agents
-  ml/evolution.py              # evolutionary optimization + selection
-  ml/experiment.py             # experiment metadata + report generation
-tests/
-  test_evolution.py
-  test_engine_invariants.py
+  ml/evolution.py              # evolutionary optimization with holdout checks
+  ml/experiment.py             # experiment metadata + artifact generation
+  cli.py                       # CLI entrypoints for baseline and optimization
 ```
-
-## Notes
-
-The optimizer evaluator remains a synthetic proxy objective for fast iterations.
-Alongside it, the baseline simulator now runs full round-state transitions with deterministic seeds so head-to-head comparisons are reproducible between runs.
-
-See the planning docs for full simulator roadmap:
-
-- [`docs/skyjo-rules.md`](docs/skyjo-rules.md)
-- [`docs/technical-approach.md`](docs/technical-approach.md)
-- [`docs/iteration-plan.md`](docs/iteration-plan.md)

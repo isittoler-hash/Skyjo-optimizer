@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+from datetime import UTC, datetime
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -17,6 +18,8 @@ from skyjo_optimizer.simulation.scenarios import DEFAULT_SITUATIONS, GameSituati
 class ExperimentMetadata:
     git_commit_hash: str
     ruleset_config_hash: str
+    run_timestamp_utc: str
+    seed_bank_id: str
     optimizer_config: EvolutionConfig
     seed: int
 
@@ -36,8 +39,16 @@ class ExperimentReport:
 
     def write_json(self, path: str | Path) -> Path:
         destination = Path(path)
+        destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n")
         return destination
+
+    def write_artifacts(self, root: str | Path = "artifacts") -> Path:
+        run_id = f"{self.metadata.run_timestamp_utc.replace(':', '').replace('-', '')}_{self.metadata.git_commit_hash[:7]}"
+        run_dir = Path(root) / run_id
+        self.write_json(run_dir / "report.json")
+        _write_tournament_csv(self.tournament_benchmark, run_dir / "tournament_summary.csv")
+        return run_dir
 
 
 def run_experiment(
@@ -77,6 +88,8 @@ def run_experiment(
     metadata = ExperimentMetadata(
         git_commit_hash=_current_commit_hash(),
         ruleset_config_hash=_ruleset_hash(scenarios),
+        run_timestamp_utc=datetime.now(UTC).isoformat(timespec="seconds"),
+        seed_bank_id=_seed_bank_id(optimizer.config.seed),
         optimizer_config=optimizer.config,
         seed=optimizer.config.seed,
     )
@@ -150,3 +163,23 @@ def _current_commit_hash() -> str:
         return output
     except Exception:
         return "unknown"
+
+
+def _seed_bank_id(seed: int) -> str:
+    payload = f"seed-bank::{seed}".encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()[:12]
+
+
+def _write_tournament_csv(tournament: dict[str, object], destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    means: dict[str, float] = tournament["mean_score_by_agent"]  # type: ignore[assignment]
+    medians: dict[str, float] = tournament["median_score_by_agent"]  # type: ignore[assignment]
+    tails: dict[str, float] = tournament["tail95_score_by_agent"]  # type: ignore[assignment]
+    wins: dict[str, float] = tournament["win_rate_by_agent"]  # type: ignore[assignment]
+
+    rows = ["agent,mean_score,median_score,tail95_score,win_rate"]
+    for agent_name in sorted(means):
+        rows.append(
+            f"{agent_name},{means[agent_name]:.6f},{medians[agent_name]:.6f},{tails[agent_name]:.6f},{wins[agent_name]:.6f}"
+        )
+    destination.write_text("\n".join(rows) + "\n")
