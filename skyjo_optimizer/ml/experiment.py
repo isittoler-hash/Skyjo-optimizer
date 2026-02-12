@@ -6,6 +6,7 @@ import subprocess
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from skyjo_optimizer.simulation import RandomAgent, SimpleHeuristicAgent, run_tournament
 from skyjo_optimizer.agents.heuristic import HeuristicStrategy
 from skyjo_optimizer.ml.evolution import EvolutionConfig, EvolutionOptimizer, StrategyPerformance
 from skyjo_optimizer.simulation.evaluator import EvaluationResult, evaluate_strategy
@@ -25,6 +26,7 @@ class ExperimentReport:
     metadata: ExperimentMetadata
     optimized: StrategyPerformance
     benchmark: StrategyPerformance
+    tournament_benchmark: dict[str, object]
     holdout_score: float | None
 
     def to_dict(self) -> dict[str, object]:
@@ -44,6 +46,7 @@ def run_experiment(
     config: EvolutionConfig | None = None,
     holdout_situation: GameSituation | None = None,
     benchmark_strategy: HeuristicStrategy | None = None,
+    tournament_rounds: int = 24,
 ) -> ExperimentReport:
     scenarios = situations or DEFAULT_SITUATIONS
     optimizer = EvolutionOptimizer(config)
@@ -55,6 +58,10 @@ def run_experiment(
         scenarios,
         rounds=optimizer.config.rounds_per_eval,
         seed=optimizer.config.seed,
+    )
+    tournament_benchmark = _run_baseline_tournament_benchmark(
+        seed=optimizer.config.seed,
+        rounds=tournament_rounds,
     )
 
     holdout_score = None
@@ -78,8 +85,31 @@ def run_experiment(
         metadata=metadata,
         optimized=optimized,
         benchmark=benchmark_perf,
+        tournament_benchmark=tournament_benchmark,
         holdout_score=holdout_score,
     )
+
+
+def _run_baseline_tournament_benchmark(*, seed: int, rounds: int) -> dict[str, object]:
+    result = run_tournament(
+        [
+            SimpleHeuristicAgent("heuristic"),
+            RandomAgent("random_a"),
+            RandomAgent("random_b"),
+        ],
+        rounds=rounds,
+        seed=seed + 20_000,
+    )
+
+    return {
+        "rounds": rounds,
+        "seed": seed + 20_000,
+        "mean_score_by_agent": result.mean_score_by_agent,
+        "median_score_by_agent": result.median_score_by_agent,
+        "tail95_score_by_agent": result.tail95_score_by_agent,
+        "win_rate_by_agent": result.win_rate_by_agent,
+        "win_rate_matrix": result.win_rate_matrix,
+    }
 
 
 def _score_static_strategy(

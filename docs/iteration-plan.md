@@ -71,3 +71,15 @@ Each run should persist:
 - Heuristic agent significantly outperforms random baseline.
 - Results are reproducible under reruns.
 - Rule-variant sensitivity is measured and reported.
+
+## Estimated completion timeline
+
+Assuming focused part-time iteration (about 6-8 hours/week):
+
+- Phase 1 completion (benchmark reporting + experiment integration): **done** in this iteration.
+- Phase 2 completion (heuristic optimization loop hardening + holdout analysis): **~1-2 weeks**.
+- Phase 3 completion (optional search-based agent prototype): **~1 week** after Phase 2.
+- Phase 4 completion (optional learning-based extension with benchmark gates): **~2-3 weeks** after Phase 3.
+
+Projected total to reach a robust non-optional baseline (through Phase 2): **~2 weeks**.
+Projected total including optional Phases 3-4: **~5-7 weeks**.
