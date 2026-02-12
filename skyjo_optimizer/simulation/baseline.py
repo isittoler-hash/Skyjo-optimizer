@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from random import Random
 from statistics import mean, median
@@ -24,12 +25,13 @@ class TournamentResult:
     win_rate_matrix: dict[str, dict[str, float]]
 
 
-class BaselineAgent:
+class BaselineAgent(ABC):
     def __init__(self, name: str) -> None:
         self.name = name
 
+    @abstractmethod
     def choose_action(self, state: RoundState, actions: list[Action], rng: Random) -> Action:
-        raise NotImplementedError
+        """Choose one legal action from the current state."""
 
 
 class RandomAgent(BaselineAgent):

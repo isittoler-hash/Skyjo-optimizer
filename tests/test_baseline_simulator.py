@@ -1,6 +1,14 @@
 from __future__ import annotations
 
+import pytest
+
 from skyjo_optimizer.simulation import RandomAgent, SimpleHeuristicAgent, run_round, run_tournament
+from skyjo_optimizer.simulation.baseline import BaselineAgent
+
+
+def test_baseline_agent_is_abstract() -> None:
+    with pytest.raises(TypeError):
+        BaselineAgent("base")
 
 
 def test_run_round_is_deterministic_for_fixed_seed() -> None:
