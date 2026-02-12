@@ -1,5 +1,11 @@
 # Iterative Testing and Optimization Plan
 
+
+## Current implementation status
+
+- ✅ Phase 0: rule-lock + invariant tests are in place.
+- 🟡 Phase 1: deterministic seeded simulation runner and baseline agents are now implemented; next work is expanding benchmark reporting and integrating these metrics into experiment logging.
+
 ## Phase 0: Rule-lock and invariants
 
 Deliverables:
