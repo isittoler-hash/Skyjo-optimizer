@@ -9,6 +9,7 @@ This repository now includes a first executable baseline for **multi-situation s
 - A deterministic evaluator that scores strategies under each situation.
 - An evolutionary optimizer that mutates strategy weights and keeps elites.
 - A selector that picks the best strategy for a specific situation.
+- An experiment runner that records metadata + benchmark comparisons and can write JSON reports.
 
 ## Quick start
 
@@ -24,6 +25,7 @@ skyjo_optimizer/
   simulation/scenarios.py      # game situations (test contexts)
   simulation/evaluator.py      # deterministic strategy scoring
   ml/evolution.py              # evolutionary optimization + selection
+  ml/experiment.py             # experiment metadata + report generation
 tests/
   test_evolution.py
 ```
