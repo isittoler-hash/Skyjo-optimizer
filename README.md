@@ -38,3 +38,9 @@ skyjo_optimizer/
   ml/experiment.py             # experiment metadata + artifact generation
   cli.py                       # CLI entrypoints for baseline and optimization
 ```
+
+## Production release planning
+
+For a step-by-step workflow to move the project to a production-ready release, see:
+
+- `docs/production-release-workflow.md`
