@@ -15,6 +15,9 @@ class EvolutionConfig:
     elite_count: int = 6
     mutation_sigma: float = 0.12
     rounds_per_eval: int = 120
+    holdout_rounds: int = 120
+    holdout_every: int = 2
+    early_stop_patience: int = 5
     seed: int = 7
 
 
@@ -34,12 +37,46 @@ class EvolutionOptimizer:
             raise ValueError("at least one game situation is required")
 
         rng = random.Random(self.config.seed)
+        if self.config.elite_count <= 0:
+            raise ValueError("elite_count must be positive")
+        if self.config.elite_count > self.config.population_size:
+            raise ValueError("elite_count cannot exceed population_size")
+
+        train_seeds, holdout_seeds = self._build_seed_splits()
         population = [self._random_strategy(rng) for _ in range(self.config.population_size)]
+        best_holdout = float("-inf")
+        stagnant_generations = 0
 
         for generation in range(self.config.generations):
-            scored = [self._score_strategy(s, situations, generation) for s in population]
+            scored = [
+                self._score_strategy(
+                    strategy=s,
+                    situations=situations,
+                    generation=generation,
+                    eval_rounds=self.config.rounds_per_eval,
+                    seed_bank=train_seeds,
+                )
+                for s in population
+            ]
             scored.sort(key=lambda x: x.aggregate_fitness, reverse=True)
             elites = [row.strategy for row in scored[: self.config.elite_count]]
+
+            if generation % self.config.holdout_every == 0:
+                holdout_score = self._score_strategy(
+                    strategy=elites[0],
+                    situations=situations,
+                    generation=generation,
+                    eval_rounds=self.config.holdout_rounds,
+                    seed_bank=holdout_seeds,
+                ).aggregate_fitness
+                if holdout_score > best_holdout:
+                    best_holdout = holdout_score
+                    stagnant_generations = 0
+                else:
+                    stagnant_generations += 1
+
+                if stagnant_generations >= self.config.early_stop_patience:
+                    break
 
             next_population = elites.copy()
             while len(next_population) < self.config.population_size:
@@ -47,7 +84,16 @@ class EvolutionOptimizer:
                 next_population.append(self._mutate(parent, rng))
             population = next_population
 
-        final_scores = [self._score_strategy(s, situations, self.config.generations) for s in population]
+        final_scores = [
+            self._score_strategy(
+                strategy=s,
+                situations=situations,
+                generation=self.config.generations,
+                eval_rounds=self.config.holdout_rounds,
+                seed_bank=holdout_seeds,
+            )
+            for s in population
+        ]
         final_scores.sort(key=lambda x: x.aggregate_fitness, reverse=True)
         return final_scores[0]
 
@@ -72,16 +118,18 @@ class EvolutionOptimizer:
         strategy: HeuristicStrategy,
         situations: list[GameSituation],
         generation: int,
+        eval_rounds: int,
+        seed_bank: tuple[int, ...],
     ) -> StrategyPerformance:
         scenario_scores: dict[str, float] = {}
         total = 0.0
 
         for idx, situation in enumerate(situations):
-            eval_seed = self.config.seed + generation * 1000 + idx * 37
+            eval_seed = seed_bank[(generation + idx) % len(seed_bank)]
             result = evaluate_strategy(
                 strategy,
                 situation,
-                rounds=self.config.rounds_per_eval,
+                rounds=eval_rounds,
                 seed=eval_seed,
             )
             scenario_scores[situation.name] = result.fitness
@@ -92,6 +140,12 @@ class EvolutionOptimizer:
             scenario_scores=scenario_scores,
             aggregate_fitness=total / len(situations),
         )
+
+    def _build_seed_splits(self) -> tuple[tuple[int, ...], tuple[int, ...]]:
+        rng = random.Random(self.config.seed)
+        bank = [rng.randrange(1, 10_000_000) for _ in range(24)]
+        midpoint = len(bank) // 2
+        return tuple(bank[:midpoint]), tuple(bank[midpoint:])
 
     def _single_situation_score(
         self,
