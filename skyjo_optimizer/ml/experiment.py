@@ -22,6 +22,7 @@ class ExperimentMetadata:
     seed_bank_id: str
     optimizer_config: EvolutionConfig
     seed: int
+    resolved_config: dict[str, object] | None = None
 
 
 @dataclass(frozen=True)
@@ -58,6 +59,7 @@ def run_experiment(
     holdout_situation: GameSituation | None = None,
     benchmark_strategy: HeuristicStrategy | None = None,
     tournament_rounds: int = 24,
+    resolved_config: dict[str, object] | None = None,
 ) -> ExperimentReport:
     scenarios = situations or DEFAULT_SITUATIONS
     optimizer = EvolutionOptimizer(config)
@@ -92,6 +94,7 @@ def run_experiment(
         seed_bank_id=_seed_bank_id(optimizer.config.seed),
         optimizer_config=optimizer.config,
         seed=optimizer.config.seed,
+        resolved_config=resolved_config,
     )
 
     return ExperimentReport(
