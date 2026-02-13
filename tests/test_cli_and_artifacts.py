@@ -45,3 +45,37 @@ def test_cli_baseline_command_writes_json(tmp_path) -> None:
     assert payload["rounds"] == 6
     assert payload["seed"] == 4
     assert "heuristic" in payload["mean_score_by_agent"]
+
+
+def test_cli_report_summary_command_writes_csv(tmp_path) -> None:
+    run_dir = tmp_path / "20250101_run"
+    run_dir.mkdir(parents=True)
+    payload = {
+        "metadata": {"run_timestamp_utc": "2025-01-01T00:00:00+00:00", "seed": 9},
+        "optimized": {"aggregate_fitness": 3.0},
+        "benchmark": {"aggregate_fitness": 1.5},
+        "holdout_score": 2.0,
+        "tournament_benchmark": {
+            "mean_score_by_agent": {"heuristic": 20.0, "random_a": 22.0, "random_b": 25.0},
+            "win_rate_by_agent": {"heuristic": 0.6, "random_a": 0.25, "random_b": 0.15},
+        },
+    }
+    (run_dir / "report.json").write_text(json.dumps(payload))
+
+    output = tmp_path / "summary.csv"
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "skyjo_optimizer.cli",
+            "report-summary",
+            "--artifacts-root",
+            str(tmp_path),
+            "--output",
+            str(output),
+        ]
+    )
+
+    content = output.read_text()
+    assert "seed,aggregate_fitness" in content
+    assert "9,3.0,2.0,1.5" in content

@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from skyjo_optimizer.ml import EvolutionConfig, run_experiment
+from skyjo_optimizer.ml import EvolutionConfig, run_experiment, summarize_reports, write_summary_csv
 from skyjo_optimizer.simulation import RandomAgent, SimpleHeuristicAgent, run_tournament
 
 
@@ -24,6 +24,13 @@ def _build_parser() -> argparse.ArgumentParser:
     optimize.add_argument("--rounds-per-eval", type=int, default=120)
     optimize.add_argument("--seed", type=int, default=7)
     optimize.add_argument("--output-root", type=Path, default=Path("artifacts"))
+
+    report_summary = subparsers.add_parser(
+        "report-summary",
+        help="consolidate artifacts/*/report.json files into a CSV summary",
+    )
+    report_summary.add_argument("--artifacts-root", type=Path, default=Path("artifacts"))
+    report_summary.add_argument("--output", type=Path, default=Path("artifacts/summary.csv"))
 
     return parser
 
@@ -66,6 +73,12 @@ def main() -> int:
         report = run_experiment(config=config)
         path = report.write_artifacts(args.output_root)
         print(path)
+        return 0
+
+    if args.command == "report-summary":
+        rows = summarize_reports(args.artifacts_root)
+        output = write_summary_csv(rows, args.output)
+        print(output)
         return 0
 
     parser.error(f"unknown command: {args.command}")
