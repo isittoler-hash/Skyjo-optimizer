@@ -29,6 +29,7 @@ class RoundState:
     active_player: int
     turn_count: int
     final_turns_remaining: int | None
+    round_ender: int | None
 
 
 @dataclass(frozen=True)
@@ -83,6 +84,7 @@ def initialize_round(rules: RulesConfig, player_count: int, seed: int) -> RoundS
         active_player=0,
         turn_count=0,
         final_turns_remaining=None,
+        round_ender=None,
     )
 
 
@@ -141,6 +143,7 @@ def apply_action(state: RoundState, action: Action) -> RoundState:
         active_player=state.active_player,
         turn_count=state.turn_count,
         final_turns_remaining=state.final_turns_remaining,
+        round_ender=state.round_ender,
     )
     return _advance_turn(next_state)
 
@@ -160,10 +163,14 @@ def _draw_card(draw_pile: list[int], discard_pile: list[int]) -> tuple[int, list
 def _advance_turn(state: RoundState) -> RoundState:
     players = state.players
     final_turns_remaining = state.final_turns_remaining
+    round_ender = state.round_ender
 
     if final_turns_remaining is None:
-        if any(len(player.face_up) == len(player.slots) for player in players):
-            final_turns_remaining = len(players) - 1
+        for index, player in enumerate(players):
+            if len(player.face_up) == len(player.slots):
+                round_ender = index
+                final_turns_remaining = len(players) - 1
+                break
     elif final_turns_remaining > 0:
         final_turns_remaining -= 1
 
@@ -176,6 +183,7 @@ def _advance_turn(state: RoundState) -> RoundState:
         active_player=(state.active_player + 1) % len(players),
         turn_count=state.turn_count + 1,
         final_turns_remaining=final_turns_remaining,
+        round_ender=round_ender,
     )
 
 

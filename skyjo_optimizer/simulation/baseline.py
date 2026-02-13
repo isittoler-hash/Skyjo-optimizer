@@ -103,6 +103,7 @@ def run_round(
         agent.name: _score_player(state, idx)
         for idx, agent in enumerate(agents)
     }
+    _apply_ender_penalty_if_needed(state, agents, scores)
     best_score = min(scores.values())
     winners = tuple(sorted(name for name, score in scores.items() if score == best_score))
 
@@ -174,7 +175,38 @@ def _rotate_agents(agents: list[BaselineAgent], shift: int) -> list[BaselineAgen
 
 def _score_player(state: RoundState, player_index: int) -> int:
     player = state.players[player_index]
-    return sum(state.cards[card_id].value for card_id in player.slots)
+    removed_slots = _removed_column_slots(state, player_index)
+    return sum(
+        state.cards[card_id].value
+        for slot_index, card_id in enumerate(player.slots)
+        if slot_index not in removed_slots
+    )
+
+
+def _removed_column_slots(state: RoundState, player_index: int) -> set[int]:
+    player = state.players[player_index]
+    if len(player.slots) != 12:
+        return set()
+
+    removed: set[int] = set()
+    for column_start in range(4):
+        column_indices = (column_start, column_start + 4, column_start + 8)
+        if not all(index in player.face_up for index in column_indices):
+            continue
+        values = {state.cards[player.slots[index]].value for index in column_indices}
+        if len(values) == 1:
+            removed.update(column_indices)
+    return removed
+
+
+def _apply_ender_penalty_if_needed(state: RoundState, agents: list[BaselineAgent], scores: dict[str, int]) -> None:
+    if state.rules.ender_penalty_mode != "strict_lowest_required" or state.round_ender is None:
+        return
+
+    ender_name = agents[state.round_ender].name
+    lowest = min(scores.values())
+    if scores[ender_name] != lowest or list(scores.values()).count(lowest) > 1:
+        scores[ender_name] *= 2
 
 
 def _percentile(values: list[int], q: float) -> float:
