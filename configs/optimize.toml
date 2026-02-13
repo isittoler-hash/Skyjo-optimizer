@@ -1,0 +1,6 @@
+population_size = 24
+generations = 20
+elite_count = 6
+rounds_per_eval = 120
+seed = 7
+output_root = "artifacts"
