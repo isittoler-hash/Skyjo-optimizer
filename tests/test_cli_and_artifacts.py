@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import subprocess
 import sys
 
@@ -45,3 +46,50 @@ def test_cli_baseline_command_writes_json(tmp_path) -> None:
     assert payload["rounds"] == 6
     assert payload["seed"] == 4
     assert "heuristic" in payload["mean_score_by_agent"]
+
+
+def test_cli_pipeline_command_writes_manifest_and_artifacts(tmp_path) -> None:
+    output = subprocess.check_output(
+        [
+            sys.executable,
+            "-m",
+            "skyjo_optimizer.cli",
+            "pipeline",
+            "--population-size",
+            "6",
+            "--generations",
+            "2",
+            "--elite-count",
+            "2",
+            "--rounds-per-eval",
+            "8",
+            "--baseline-rounds",
+            "4",
+            "--holdout-rounds",
+            "5",
+            "--seed",
+            "9",
+            "--output-root",
+            str(tmp_path),
+        ],
+        text=True,
+    ).strip()
+
+    run_dir = Path(output)
+    assert run_dir.exists()
+    assert (run_dir / "report.json").exists()
+    assert (run_dir / "tournament_summary.csv").exists()
+    assert (run_dir / "baseline.json").exists()
+    assert (run_dir / "holdout_score.json").exists()
+    assert (run_dir / "verify.json").exists()
+    assert (run_dir / "manifest.json").exists()
+
+    verify_payload = json.loads((run_dir / "verify.json").read_text())
+    assert verify_payload["ok"] is True
+
+    manifest_payload = json.loads((run_dir / "manifest.json").read_text())
+    assert manifest_payload["git_hash"]
+    assert manifest_payload["hostname"]
+    assert manifest_payload["python_version"]
+    assert manifest_payload["command_args"]
+    assert manifest_payload["artifacts"]["report_json"]
