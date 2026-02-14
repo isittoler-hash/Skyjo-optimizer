@@ -15,6 +15,8 @@ python -m pytest
 python -m skyjo_optimizer.cli baseline --rounds 24 --seed 7
 python -m skyjo_optimizer.cli optimize --population-size 24 --generations 20 --seed 7
 python -m skyjo_optimizer.cli verify --rounds 60 --seed 11
+python -m skyjo_optimizer.cli pipeline --output-root artifacts/full-run
+python -m skyjo_optimizer.cli report-summary --artifacts-root artifacts --output artifacts/summary.csv
 ```
 
 ## Artifact layout
@@ -36,7 +38,7 @@ skyjo_optimizer/
   simulation/baseline.py       # seeded round/tournament runner + baseline agents
   ml/evolution.py              # evolutionary optimization with holdout checks
   ml/experiment.py             # experiment metadata + artifact generation
-  cli.py                       # CLI entrypoints for baseline and optimization
+  cli.py                       # CLI entrypoints for baseline, optimize, pipeline, verify, and report-summary
 ```
 
 ## Production release planning

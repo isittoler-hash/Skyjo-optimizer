@@ -113,3 +113,58 @@ output_root = "{tmp_path}"
     assert payload["metadata"]["resolved_config"]["population_size"] == 6
     assert payload["metadata"]["resolved_config"]["generations"] == 3
     assert payload["metadata"]["resolved_config"]["output_root"] == str(tmp_path)
+
+
+def test_cli_pipeline_writes_manifest_and_artifacts(tmp_path) -> None:
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "skyjo_optimizer.cli",
+            "pipeline",
+            "--rounds",
+            "8",
+            "--seed",
+            "5",
+            "--population-size",
+            "6",
+            "--generations",
+            "2",
+            "--elite-count",
+            "2",
+            "--rounds-per-eval",
+            "10",
+            "--output-root",
+            str(tmp_path),
+        ]
+    )
+
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert manifest["artifacts"]["baseline"] is True
+    assert manifest["artifacts"]["verify"] is True
+    assert manifest["artifacts"]["holdout_score"] is True
+
+
+def test_cli_report_summary_command(tmp_path) -> None:
+    report = run_experiment(
+        config=EvolutionConfig(population_size=6, generations=2, elite_count=2, rounds_per_eval=10, seed=19)
+    )
+    report.write_artifacts(tmp_path)
+
+    summary = tmp_path / "summary.csv"
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "skyjo_optimizer.cli",
+            "report-summary",
+            "--artifacts-root",
+            str(tmp_path),
+            "--output",
+            str(summary),
+        ]
+    )
+
+    content = summary.read_text()
+    assert "run_dir,git_commit_hash" in content
+    assert "19" in content
